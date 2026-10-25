@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Name the Parts of an Equation</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#18253a;background:#f5f7fb;--ac:#5144c6;--ok:#18845a;--bad:#c43a3a}
+*{box-sizing:border-box}body{margin:0;padding:20px}.app{max-width:680px;margin:auto}
+h1{font-size:clamp(22px,4vw,30px);margin:0 0 10px;text-align:center}
+.card{background:#fff;border:1px solid #d9e1eb;border-radius:16px;padding:26px 18px;margin:12px 0;box-shadow:0 2px 8px #152b4310}
+.q{text-align:center;font-size:clamp(20px,4.5vw,26px);font-weight:800;color:#5e6d81;margin:0 0 6px}
+.eq{display:flex;align-items:center;justify-content:center;gap:clamp(10px,3vw,22px);font-size:clamp(46px,13vw,84px);font-weight:800;margin:84px 0 12px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.eq .op{color:#5e6d81;padding-bottom:0}
+.eq .t{position:relative;padding:4px 18px 8px;border-radius:50%;border:5px solid transparent;line-height:1.1;min-width:1.4em;text-align:center}
+.eq .t.target{border-color:var(--ac);background:#eeeafe}
+.eq .t .ptr{position:absolute;left:50%;top:-80px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font-size:.42em;color:var(--ac);line-height:1;animation:bob 1.1s ease-in-out infinite}
+.ptr b{font-size:1.1em}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,6px)}}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px}
+.opt{font-size:clamp(20px,4.8vw,26px);font-weight:800;padding:18px 10px;border-radius:14px;border:3px solid #c8d3e2;background:#fff;color:#18253a;cursor:pointer;font-family:inherit}
+.opt:hover:not(:disabled){border-color:var(--ac);background:#f3f1ff}
+.opt:disabled{cursor:default}
+.opt.bad{border-color:var(--bad);background:#fdf0f0;color:var(--bad);animation:wig .4s}
+.opt.good{border-color:var(--ok);background:#e7f5ee;color:var(--ok)}
+.opt.dim{opacity:.45}
+@keyframes wig{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+.fb{text-align:center;min-height:56px;margin-top:18px;font-weight:700}
+.fb .big{font-size:24px;color:var(--ok)}
+.fb .big.no{color:var(--bad)}
+.fb .def{font-size:18px;color:#5e6d81;margin-top:4px}
+.next{display:block;margin:6px auto 0;border:0;border-radius:12px;background:var(--ac);color:#fff;font-weight:800;font-size:19px;padding:13px 26px;cursor:pointer}
+.next[hidden]{display:none}
+@media(max-width:420px){.eq{margin-top:72px}.eq .t .ptr{top:-62px}.opts{gap:8px}}
+</style>
+</head>
+<body><main class="app">
+<h1>Name the Parts of an Equation</h1>
+<section class="card">
+ <p class="q">What is this number called?</p>
+ <div class="eq" id="eq" aria-label="Equation"></div>
+ <div class="opts" id="opts" role="group" aria-label="Answer choices"></div>
+ <div class="fb" id="fb" role="status" aria-live="polite"></div>
+ <button class="next" id="next" type="button" hidden>Next &#8594;</button>
+</section>
+</main>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const OPS={add:['Addend','Sum'],sub:['Minuend','Subtrahend','Difference'],mul:['Factor','Product'],div:['Dividend','Divisor','Quotient']};
+const OPOF={Addend:'add',Sum:'add',Minuend:'sub',Subtrahend:'sub',Difference:'sub',Factor:'mul',Product:'mul',Dividend:'div',Divisor:'div',Quotient:'div'};
+const DEF={Addend:'A number that is being added.',Sum:'The total when you add.',Minuend:'The number you start with, before taking away.',Subtrahend:'The number you take away.',Difference:'What is left after you subtract.',Factor:'A number that is being multiplied.',Product:'The result of multiplying.',Dividend:'The number being divided.',Divisor:'The number you divide by.',Quotient:'The result of dividing.'};
+const ALL=Object.keys(OPOF);
+const r=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=r(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;};
+let answer='',last='',done=false,choices=[];
+function build(term){
+ const op=OPOF[term];let parts;
+ if(op==='add'){const a=r(2,25),b=r(2,25);parts=[[a,'Addend'],['+'],[b,'Addend'],['='],[a+b,'Sum']];}
+ else if(op==='sub'){const m=r(6,40),s=r(2,m-1);parts=[[m,'Minuend'],['−'],[s,'Subtrahend'],['='],[m-s,'Difference']];}
+ else if(op==='mul'){const a=r(2,12),b=r(2,12);parts=[[a,'Factor'],['×'],[b,'Factor'],['='],[a*b,'Product']];}
+ else{const d=r(2,12),q=r(2,12);parts=[[d*q,'Dividend'],['÷'],[d,'Divisor'],['='],[q,'Quotient']];}
+ // choose which number to point at: any number with the asked name (for Factor/Addend either one)
+ const idxs=parts.map((p,i)=>p.length===2&&p[1]===term?i:-1).filter(i=>i>=0);
+ return {parts,target:idxs[r(0,idxs.length-1)]};
+}
+function newQuestion(){
+ let term,key;
+ do{term=ALL[r(0,ALL.length-1)];}while(term===last);
+ last=term;answer=term;done=false;
+ const {parts,target}=build(term);
+ $('eq').innerHTML=parts.map((p,i)=>p.length===1?`<span class="op">${p[0]}</span>`:`<span class="t${i===target?' target':''}">${i===target?'<span class="ptr" aria-hidden="true"><b>?</b><span>↓</span></span>':''}${p[0]}</span>`).join('');
+ // options: the right name, the other names from the same operation, then names from other operations
+ const same=OPS[OPOF[term]].filter(t=>t!==term);
+ const others=shuffle(ALL.filter(t=>OPOF[t]!==OPOF[term]));
+ choices=shuffle([term,...same,...others].slice(0,4));
+ $('opts').innerHTML=choices.map((c,i)=>`<button class="opt" type="button" data-t="${c}">${c}</button>`).join('');
+ document.querySelectorAll('#opts .opt').forEach(b=>b.onclick=()=>pick(b));
+ $('fb').innerHTML='';$('next').hidden=true;
+}
+function pick(btn){
+ if(done)return;const t=btn.dataset.t;
+ if(t===answer){
+  done=true;btn.classList.add('good');
+  document.querySelectorAll('#opts .opt').forEach(b=>{b.disabled=true;if(b!==btn)b.classList.add('dim');});
+  $('fb').innerHTML=`<div class="big">✓ Yes! This is the ${answer.toLowerCase()}.</div><div class="def">${DEF[answer]}</div>`;
+  $('next').hidden=false;$('next').focus();
+ }else{
+  btn.classList.add('bad');btn.disabled=true;
+  $('fb').innerHTML=`<div class="big no">Not quite. Try again.</div>`;
+ }
+}
+$('next').onclick=newQuestion;
+document.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&done){e.preventDefault();newQuestion();return;}
+ const n=+e.key;if(n>=1&&n<=4&&!done){const b=document.querySelectorAll('#opts .opt')[n-1];if(b&&!b.disabled)pick(b);}
+});
+newQuestion();
+})();
+</script></body></html>
